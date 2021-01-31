@@ -109,10 +109,10 @@ function withdraw(username,amount){
 
 
 }
-function deleteUser(username){
+function deleteUser(id){
   return User.deleteOne({
-      username
-  }).then(data=>{
+      _id:id
+  }).then(user=>{
       return { statusCode:200,message:"user deletion successfull"}
   })
 
@@ -125,6 +125,18 @@ function setCurrentUser(username){
 function getCurrentUser(){
     return currentUser;
 }
+
+function getHistory(username){
+    return User.findOne({
+        username
+    })
+    .then(user=>{
+        return{
+            statusCode:200,
+            history:user.history
+        }
+    })
+}
 module.exports={
    getUsers,
    addUser,
@@ -132,7 +144,9 @@ module.exports={
    deposit,
    withdraw,
    deleteUser,
+   getHistory,
     //setCurrentUser:setCurrentUser,
-    getCurrentUser:getCurrentUser
+    getCurrentUser:getCurrentUser,
+    
     
 }

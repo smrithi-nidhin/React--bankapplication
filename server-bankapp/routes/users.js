@@ -2,18 +2,32 @@ var express = require('express');
 const bank = require('../services/bank');
 var router = express.Router();
 var Bank = require('../services/bank');
-
-
-
-function authMiddleware(req,res,next){
-  console.log("authmiddleware");
-  if(Bank.getCurrentUser()){
-    next();
-  }
-  else{
-    res.send({message:"User not authenticated"});
-  }
+const jwt=require('jsonwebtoken');
+const { token } = require('morgan');
+const jwtSecret="secret";
+function authMiddleware(req,res,next)
+{
+    const token=req.header('authorization');
+    jwt.verify(token,jwtSecret,function(err,decoded){
+      if(decoded.username){
+        req.session.username=decoded.username;
+        next();
+      }
+      else{
+        res.status(401).send({message:"please login"});
+      }
+    })
 }
+/* Using session*/
+// function authMiddleware(req,res,next){
+//   console.log("authmiddleware");
+//   if(Bank.getCurrentUser()){
+//     next();
+//   }
+//   else{
+//     res.send({message:"User not authenticated"});
+//   }
+// }
 
 /* GET users listing. */
 
@@ -46,41 +60,26 @@ router.post('/register',function(req, res) {
   }
 
 });
-router.delete('/',function(req,res){
-  Bank.deleteUser(req.body.username)
+router.delete('/:id',function(req,res){
+  Bank.deleteUser(req.params.id)
   .then(data=>{
-    res.status(data.statusCode).send({message:data.message})
+    res.status(data.statusCode).send({message:data.message,users:data.users})
   })
 });
 router.post('/login',function(req, res) {
   let usname=req.body.username;
        let pwd=req.body.password;
-       //let data=Bank.getUsers();
+     
        Bank.login(usname,pwd)
        .then(data=>{
-         if(data.statusCode==200){
-           req.session.currentUser=usname;
+         let token="";
+         if(data.statusCode==200)
+         {
+          token=jwt.sign({username:usname},jwtSecret);
          }
-         res.status(data.statusCode).send({message:data.message})
+         res.status(data.statusCode).send({message:data.message,token});
        })
-      //  if(usname in data)
-      //   {
-
-      //       let password=data[usname]["password"];
-      //       if(pwd==password)
-      //       {
-      //         req.session.currentUser=usname;
-      //           Bank.setCurrentUser(usname);
-      //           res.send({message:"Login success"});
-      //       }
-      //       else
-      //       {
-      //         res.status(400).send({message:"you provide invalid message"});
-        //     }
-        // }
-        // else{
-        //     res.status(400).send({message:"invalid user"});
-        // }
+      
 
 });
 
@@ -145,16 +144,12 @@ router.post('/withdraw',function(req,res) {
 //   }
  } )
 
-router.get('/transactionhistory',function(req,res){
-  let data=Bank.getUsers();
-  let uname=req.session.currentUser;
-  if(uname in data){
-    return res.send({history:data[uname].history});
-
-  }
-  else{
-    res.status(400).send({message:"invalid user"})
-  }
-})
+router.get('/transaction-history',authMiddleware,function(req,res){
+  Bank.getHistory(req.session.currentUser)
+  .then(data=>{
+    res.status(data.statusCode).send({history:data.history});
+  });
+  
+});
 module.exports = router;
 

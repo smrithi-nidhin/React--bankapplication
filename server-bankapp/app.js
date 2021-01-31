@@ -10,7 +10,10 @@ var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 
 var app = express();
-mongoose.connect('mongodb://localhost:27017/bank-app');
+mongoose.connect('mongodb://localhost:27017/bank-app',{
+  useNewUrlParser:true,
+  useUnifiedTopology:true
+});
 
 app.use(cors({
   origin:"http://localhost:4200",
